@@ -18,6 +18,7 @@ void error(string msg)
 
 int main(int argc, char *argv[])
 {
+	
 	int sockfd, portno, n;
 	struct sockaddr_in serv_addr;
 	struct hostent * server;
@@ -47,7 +48,6 @@ int main(int argc, char *argv[])
 		fprintf(stderr, "ERROR, no such host");
 
 	}
-
 	struct hostent *gethostbyname(char *name);
 
 	bzero((char *) &serv_addr, sizeof(serv_addr));
@@ -61,13 +61,19 @@ int main(int argc, char *argv[])
 	{
 		error("ERROR connecting");
 	}
-
-	printf("Please enter the message: ");
 	
+	cout << "Welcome to Number Guessing Game" << endl;	
+
+	printf("Enter your name: ");
+
 	bzero(buffer, 256);
 	
-	fgets(buffer,255, stdin);
-	
+	bool con = true;
+
+	while(con == true){
+
+	fgets(buffer, 255, stdin);
+
 	n = write(sockfd,buffer,strlen(buffer));
 
 	if(n<0)
@@ -85,6 +91,9 @@ int main(int argc, char *argv[])
 	}
 
 	printf("%s", buffer);
-	
+
+	bzero(buffer, 256);
+	 
+	}
 	return 0;
 }

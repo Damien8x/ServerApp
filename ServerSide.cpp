@@ -7,6 +7,9 @@
 #include <unistd.h>
 #include <syscall.h>
 #include <pthread.h>
+#include <vector>
+#include <sstream>
+#include <cstring>
 
 using namespace std;
 
@@ -17,7 +20,20 @@ void error(string msg)
 {
 	cout << msg << endl;
 
-}
+};
+struct LeaderBoard
+{
+
+	int score[3];
+	string name[3];
+
+};
+
+struct Player
+{
+	string name;
+	int score;
+};
 
 struct ThreadArgs
 {
@@ -133,10 +149,57 @@ void *threadMain(void * args)
 
 void processClient(int clientSock)
 {
-
+	int count = 0;
 	int n;
 	char buffer[256];
 	bzero(buffer,256);
+	bool open = true;
+	struct Player * player;
+	player = new struct Player;
+	string output;
+	string guess;
+	int guessResult = 0;
+	int randomResult = 0;
+	int difResult = 0;
+	string rando ="";
+	
+	for (int i = 0; i < 4; i++)
+	{
+		n = rand() %10;
+		randomResult += n;
+		rando += to_string(n);
+	}
+	
+
+	n = read(clientSock, buffer, 255);
+	
+	if(n < 0)
+	{
+		error("ERROR reading from socket");
+	}
+
+	
+	player->name = buffer;
+
+	cout << player->name;
+
+
+	while(open){
+	
+
+	guessResult = 0;
+	count++;
+	if(count == 1){
+	output = "Random Number: " + rando + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
+	strcpy(buffer, output.c_str());
+	n = write(clientSock, buffer, strlen(buffer));
+
+	if(n < 0)
+	{
+		error("ERROR writing to scoket");
+	}
+	}
+	bzero(buffer, 256);
 
 	n = read(clientSock, buffer, 255);
 
@@ -145,15 +208,56 @@ void processClient(int clientSock)
 		error("ERROR reading from socket");
 	}
 
-	printf("HERE is the message. %s",buffer);
-
-	n = write(clientSock, "I got your message", 18);
-
-	if(n < 0)
+	string guess = buffer;
+	int guessArr[4];
+	for(int i = 0; i < 4; i++)
 	{
-		error("ERROR writing to scoket");
+		char x = guess[i];
+		guessArr[i] = x - '0';
+       		guessResult += guessArr[i];		
 	}
 
+	cout << guessResult << endl;
+	cout << randomResult<< endl;
+
+
+	bzero(buffer, 256);
+
+	if(guessResult > randomResult){
+		difResult = guessResult - randomResult;
+	}
+	else if(guessResult < randomResult){
+		difResult = randomResult - guessResult;
+	}else{
+	
+	
+	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + " to guess the number!";
+	strcpy(buffer, output.c_str());
+	n= write(clientSock, buffer, strlen(buffer));
+	if(n < 0)
+	{
+		error("ERROR writing to socket");
+	}
+	
+	open = false;
+	}
+	
+	if(open)
+	{
+	count ++;
+	output = "Result of guess: " + to_string(difResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: "; 
+	strcpy(buffer, output.c_str());
+	n = write(clientSock, buffer, strlen(buffer));
+	if(n<0)
+	{
+		error("ERROR writing to socket");
+	}
+
+	}	
+
+	
+	
+	}
 
 }
 
