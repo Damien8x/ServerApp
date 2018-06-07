@@ -6,17 +6,27 @@
 #include <fstream>
 #include <unistd.h>
 #include <syscall.h>
+#include <pthread.h>
 
 using namespace std;
+
+void * threadMain(void *vs);
+void processClient(int clientSock);
 
 void error(string msg)
 {
 	cout << msg << endl;
 
 }
+
+struct ThreadArgs
+{
+int clientSock;
+};
+
 int main(int argc, char *argv[])
 {
-	int sockfd, newsockfd, portno, n;
+	int sockfd, newsockfd, portno;
 	unsigned int clien;
 
 	char buffer[256];
@@ -64,7 +74,11 @@ struct sockaddr_in
 	{	
 		error("ERROR on binding");
 	}
-	
+	pthread_t id[200];	
+	int count = 0;
+	while(true)
+	{
+
 	listen(sockfd, 5); /*process listens to socket for connections*/
 
 	clien = sizeof(cli_addr);
@@ -77,9 +91,54 @@ struct sockaddr_in
 		error("ERROR on accept");
 	}
 
+	struct ThreadArgs * threadArgs;
+      	threadArgs = new struct ThreadArgs;
+
+	threadArgs->clientSock = newsockfd;
+	
+	count++;
+	
+	
+	int status = pthread_create(&id[count], NULL, threadMain, (void*) threadArgs);
+	
+
+
+
+
+
+}
+	return 0;
+
+}
+
+void *threadMain(void * args)
+{
+
+	struct ThreadArgs * threadArgs = (struct ThreadArgs *) args;
+
+	int clientSock = threadArgs->clientSock;
+
+	delete threadArgs;
+
+	processClient(clientSock);
+
+	pthread_detach(pthread_self());
+	close(clientSock);
+
+	return NULL;
+	
+
+}
+
+
+void processClient(int clientSock)
+{
+
+	int n;
+	char buffer[256];
 	bzero(buffer,256);
 
-	n = read(newsockfd, buffer, 255);
+	n = read(clientSock, buffer, 255);
 
 	if(n < 0)
 	{
@@ -88,21 +147,15 @@ struct sockaddr_in
 
 	printf("HERE is the message. %s",buffer);
 
-	n = write(newsockfd, "I got your message", 18);
+	n = write(clientSock, "I got your message", 18);
 
 	if(n < 0)
 	{
 		error("ERROR writing to scoket");
 	}
 
-	return 0;
 
 }
-
-
-
-
-
 
 
 
