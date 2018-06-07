@@ -21,35 +21,24 @@ void error(string msg)
 	cout << msg << endl;
 
 };
-struct LeaderBoard
-{
-
-	int score[3];
-	string name[3];
-
-};
 
 struct Player
 {
-	string name;
-	int score;
+	string name = "";
+	int score = 0;
 };
 
 struct ThreadArgs
 {
-int clientSock;
+	int clientSock;
 };
+
+
+
 
 int main(int argc, char *argv[])
 {
-	int sockfd, newsockfd, portno;
-	unsigned int clien;
-
-	char buffer[256];
-
-	struct sockaddr_in serv_addr, cli_addr;
-	
-struct sockaddr_in
+	struct sockaddr_in
 {
 	short sin_family; /*must be AF_INET*/
 	u_short sin_port;
@@ -57,6 +46,13 @@ struct sockaddr_in
 	char sin_zero[8];/*Not used, must be zero */
 };
 
+	int sockfd, newsockfd, portno;
+	unsigned int clien;
+
+	char buffer[256];
+
+	struct sockaddr_in serv_addr, cli_addr;
+	
 
 	if(argc < 2)
 	{
@@ -112,6 +108,7 @@ struct sockaddr_in
 
 	threadArgs->clientSock = newsockfd;
 	
+
 	count++;
 	
 	
@@ -149,7 +146,7 @@ void *threadMain(void * args)
 
 void processClient(int clientSock)
 {
-	int count = 0;
+	int count = 1;
 	int n;
 	char buffer[256];
 	bzero(buffer,256);
@@ -188,17 +185,19 @@ void processClient(int clientSock)
 	
 
 	guessResult = 0;
-	count++;
+
 	if(count == 1){
 	output = "Random Number: " + rando + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
 	strcpy(buffer, output.c_str());
 	n = write(clientSock, buffer, strlen(buffer));
 
-	if(n < 0)
-	{
-		error("ERROR writing to scoket");
+		if(n < 0)
+		{
+			error("ERROR writing to scoket");
+		}
 	}
-	}
+
+	count++;
 	bzero(buffer, 256);
 
 	n = read(clientSock, buffer, 255);
@@ -244,7 +243,7 @@ void processClient(int clientSock)
 	
 	if(open)
 	{
-	count ++;
+
 	output = "Result of guess: " + to_string(difResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: "; 
 	strcpy(buffer, output.c_str());
 	n = write(clientSock, buffer, strlen(buffer));
