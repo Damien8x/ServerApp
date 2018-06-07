@@ -22,18 +22,15 @@ void error(string msg)
 
 };
 
-struct Player
-{
-	string name = "";
-	int score = 0;
-};
 
 struct ThreadArgs
 {
 	int clientSock;
+
 };
 
-
+int highScoreArr[3]{0,0,0};
+string nameArr[3]{"","",""};
 
 
 int main(int argc, char *argv[])
@@ -102,12 +99,13 @@ int main(int argc, char *argv[])
 	{
 		error("ERROR on accept");
 	}
+	
 
 	struct ThreadArgs * threadArgs;
       	threadArgs = new struct ThreadArgs;
 
 	threadArgs->clientSock = newsockfd;
-	
+
 
 	count++;
 	
@@ -131,10 +129,10 @@ void *threadMain(void * args)
 
 	int clientSock = threadArgs->clientSock;
 
-	delete threadArgs;
+
 
 	processClient(clientSock);
-
+	delete threadArgs;
 	pthread_detach(pthread_self());
 	close(clientSock);
 
@@ -146,13 +144,12 @@ void *threadMain(void * args)
 
 void processClient(int clientSock)
 {
+	string name ="";
 	int count = 1;
 	int n;
 	char buffer[256];
 	bzero(buffer,256);
 	bool open = true;
-	struct Player * player;
-	player = new struct Player;
 	string output;
 	string guess;
 	int guessResult = 0;
@@ -176,9 +173,9 @@ void processClient(int clientSock)
 	}
 
 	
-	player->name = buffer;
+	name = buffer;
 
-	cout << player->name;
+	cout << name << endl;
 
 
 	while(open){
@@ -228,16 +225,47 @@ void processClient(int clientSock)
 	else if(guessResult < randomResult){
 		difResult = randomResult - guessResult;
 	}else{
+
+
 	
 	
-	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + " to guess the number!";
+	if(highScoreArr[0] > count || highScoreArr[0] == 0)
+	{
+		highScoreArr[2] = highScoreArr[1];
+		nameArr[2] = nameArr[1];
+		highScoreArr[1] = highScoreArr[0];
+		nameArr[1] = nameArr[0];
+		highScoreArr[0] = count;
+		nameArr[0] = name;
+		 
+	}else if(highScoreArr[1] > count || highScoreArr[1] == 0)
+	{
+		highScoreArr[2] = highScoreArr[1];
+		nameArr[2] = nameArr[1];
+		highScoreArr[1] = count;
+		nameArr[1] = name;
+	}else if(highScoreArr[2] > count || highScoreArr[2] == 0)
+	{
+		highScoreArr[2] = count;
+		nameArr[2] = name;
+	}
+	
+	
+
+	
+	
+	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + " to guess the number!" +
+		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
+		" " + to_string(highScoreArr[1]) + "\n 3. " + nameArr[2] + " " + to_string(highScoreArr[2]);
 	strcpy(buffer, output.c_str());
 	n= write(clientSock, buffer, strlen(buffer));
 	if(n < 0)
 	{
 		error("ERROR writing to socket");
 	}
-	
+
+
+
 	open = false;
 	}
 	
