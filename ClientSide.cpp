@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
 
 	while(con == true){
 
-	fgets(buffer, 255, stdin);
+	cin >> buffer;
 
 	n = write(sockfd,buffer,strlen(buffer));
 
@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
 		error("ERROR reading from socket");
 	}
 
-	printf("%s", buffer);
+	cout << buffer << endl;
 
 	bzero(buffer, 256);
 	 

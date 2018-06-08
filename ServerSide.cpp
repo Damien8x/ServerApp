@@ -172,12 +172,10 @@ void processClient(int clientSock)
 		error("ERROR reading from socket");
 	}
 
+
 	
+
 	name = buffer;
-
-	cout << name << endl;
-
-
 	while(open){
 	
 
@@ -194,7 +192,7 @@ void processClient(int clientSock)
 		}
 	}
 
-	count++;
+	
 	bzero(buffer, 256);
 
 	n = read(clientSock, buffer, 255);
@@ -254,10 +252,11 @@ void processClient(int clientSock)
 
 	
 	
-	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + " to guess the number!" +
+	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
 		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
 		" " + to_string(highScoreArr[1]) + "\n 3. " + nameArr[2] + " " + to_string(highScoreArr[2]);
-	strcpy(buffer, output.c_str());
+	output.copy(buffer,255 );
+
 	n= write(clientSock, buffer, strlen(buffer));
 	if(n < 0)
 	{
@@ -280,6 +279,7 @@ void processClient(int clientSock)
 		error("ERROR writing to socket");
 	}
 
+	count++;
 	}	
 
 	
