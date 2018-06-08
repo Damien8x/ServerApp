@@ -7,12 +7,14 @@
 #include <unistd.h>
 #include <netinet/in.h>
 #include <netdb.h> //defines structure hostent
+#include <stdlib.h>
 
 using namespace std;
 
 void error(string msg)
 {
 	cout << msg << endl;
+	exit(EXIT_FAILURE);
 	
 }
 
@@ -70,9 +72,77 @@ int main(int argc, char *argv[])
 	
 	bool con = true;
 
+	int count = 1;
+
 	while(con == true){
 
-	cin >> buffer;
+	string getLine;
+	
+	getline(cin, getLine);
+	bool invalidNameSize = true;
+	bool fail = false;
+	bool check = true;
+	bool innerCheck = true;
+	int success[4]{0,0,0,0};
+	if(count == 1)
+	{	
+		while(invalidNameSize == true){
+		if(getLine.length() > 100)
+		{
+			cout << "NAME CANNOT EXCEED 100 CHARACTERS" << endl;
+			getline(cin, getLine);
+		}else{
+			invalidNameSize = false;
+		}
+
+		}
+	}
+	if(count > 1)
+	{
+		while(check == true){
+			while(innerCheck == true){
+			if(getLine.length() > 4 || getLine.length() < 4)
+			{
+				cout << "ENTER 4 DIGITS WITHOUT SPACES" << endl;
+				getline(cin, getLine);
+			}
+				
+			else{
+			 	innerCheck = false;
+			}
+			}
+			for(int i = 0; i < 4; i++)
+			{
+				int a = getLine[i] - '0';
+				for(int j = 0; j < 10; j++){
+					if(a == j)
+						success[i] = 1;
+				}
+			}
+			for(int i = 0; i< 4; i++)
+			{
+				if(success[i] == 0)
+				{
+				fail = true;
+				}
+			}
+			if(fail == true)
+			{
+				cout << "ENTER 4 DIGITS WITHOUT SPACES" << endl;
+				getline(cin, getLine);
+				innerCheck = false;
+				fail = false;
+			}else{
+				check = false;
+			}
+	
+		}
+	}
+
+
+
+
+	getLine.copy(buffer, 100);	
 
 	n = write(sockfd,buffer,strlen(buffer));
 
@@ -93,7 +163,8 @@ int main(int argc, char *argv[])
 	cout << buffer << endl;
 
 	bzero(buffer, 256);
-	 
+	
+      	count++;	
 	}
 	return 0;
 }

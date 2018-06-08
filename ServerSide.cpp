@@ -10,6 +10,7 @@
 #include <vector>
 #include <sstream>
 #include <cstring>
+#include <stdlib.h>
 
 using namespace std;
 
@@ -19,7 +20,7 @@ void processClient(int clientSock);
 void error(string msg)
 {
 	cout << msg << endl;
-
+	exit(EXIT_FAILURE);
 };
 
 
