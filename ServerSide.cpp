@@ -14,6 +14,8 @@
 
 using namespace std;
 
+pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
+
 void * threadMain(void *vs);
 void processClient(int clientSock);
 
@@ -185,8 +187,11 @@ void processClient(int clientSock)
 	if(count == 1){
 	output = "Random Number: " + rando + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
 	strcpy(buffer, output.c_str());
+	if(n != 0){
 	n = write(clientSock, buffer, strlen(buffer));
-
+	}else{
+	open = false;
+	}
 		if(n < 0)
 		{
 			error("ERROR writing to scoket");
@@ -227,7 +232,7 @@ void processClient(int clientSock)
 
 
 	
-	
+	pthread_mutex_lock(&mutex);
 	if(highScoreArr[0] > count || highScoreArr[0] == 0)
 	{
 		highScoreArr[2] = highScoreArr[1];
@@ -249,16 +254,26 @@ void processClient(int clientSock)
 		nameArr[2] = name;
 	}
 	
-	
 
-	
-	
+	if(highScoreArr[2] != 0){
 	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
 		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
 		" " + to_string(highScoreArr[1]) + "\n 3. " + nameArr[2] + " " + to_string(highScoreArr[2]);
-	output.copy(buffer,255 );
+	}else if(highScoreArr[2] == 0 && highScoreArr[1] != 0){
+	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
+		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
+		" " + to_string(highScoreArr[1]); 
+	}else{
+	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
+		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) ;
+	}
 
+	pthread_mutex_unlock(&mutex);
+
+	output.copy(buffer,255 );
+	if(n!=0){
 	n= write(clientSock, buffer, strlen(buffer));
+	}
 	if(n < 0)
 	{
 		error("ERROR writing to socket");
@@ -267,6 +282,8 @@ void processClient(int clientSock)
 
 
 	open = false;
+
+
 	}
 	
 	if(open)
@@ -274,7 +291,12 @@ void processClient(int clientSock)
 
 	output = "Result of guess: " + to_string(difResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: "; 
 	strcpy(buffer, output.c_str());
+	if(n!=0){
 	n = write(clientSock, buffer, strlen(buffer));
+	}else{
+	open = false;
+	}
+
 	if(n<0)
 	{
 		error("ERROR writing to socket");
