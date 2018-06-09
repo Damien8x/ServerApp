@@ -17,7 +17,6 @@ using namespace std;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void * threadMain(void *vs);
-void processClient(int clientSock);
 
 void error(string msg)
 {
@@ -25,292 +24,242 @@ void error(string msg)
 	exit(EXIT_FAILURE);
 };
 
-
 struct ThreadArgs
 {
 	int clientSock;
 
 };
 
-int highScoreArr[3]{0,0,0};
-string nameArr[3]{"","",""};
-
+int highScoreArr[3]{ 0,0,0 };
+string nameArr[3]{ "","","" };
 
 int main(int argc, char *argv[])
 {
 	struct sockaddr_in
-{
-	short sin_family; /*must be AF_INET*/
-	u_short sin_port;
-	struct in_addr sin_addr;
-	char sin_zero[8];/*Not used, must be zero */
-};
-
+	{
+		short sin_family; /*must be AF_INET*/
+		u_short sin_port;
+		struct in_addr sin_addr;
+		char sin_zero[8];/*Not used, must be zero */
+	};
+	
+	pthread_t id[200];
+	int count = 0;
 	int sockfd, newsockfd, portno;
 	unsigned int clien;
-
 	char buffer[256];
-
 	struct sockaddr_in serv_addr, cli_addr;
-	
 
-	if(argc < 2)
+	if (argc < 2)
 	{
 		fprintf(stderr, "ERROR, no port provided");
-		
+
 	}
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
-	
-	if(sockfd < 0)
+
+	if (sockfd < 0)
 	{
 		error("ERROR opening socket");
 	}
-	
+
 	int socket(int family, int type, int protocol);
-
-	bzero((char *) &serv_addr, sizeof(serv_addr)); /*sets values in buffer to 0*/
-
+	bzero((char *)&serv_addr, sizeof(serv_addr)); /*sets values in buffer to 0*/
 	portno = stoi(argv[1]); /*port # server will listen for*/
-
 	serv_addr.sin_family = AF_INET; /*code for addr. family set to constant*/
-
 	serv_addr.sin_port = htons(portno); /*port # to convert to network byte order*/
-
 	serv_addr.sin_addr.s_addr = INADDR_ANY; /*contains ip addr. of host*/
 
 	/*binds a socket to an addr. takes three args; socket file descriptor,
 	 * addr. to which bound, size of addr. bound*/
-	if(bind(sockfd, (struct sockaddr *) &serv_addr,
-	   sizeof(serv_addr)) < 0)
-	{	
+	if (bind(sockfd, (struct sockaddr *) &serv_addr,
+		sizeof(serv_addr)) < 0)
+	{
 		error("ERROR on binding");
 	}
-	pthread_t id[200];	
-	int count = 0;
-	while(true)
+	
+	while (true)
 	{
 
-	listen(sockfd, 5); /*process listens to socket for connections*/
+		listen(sockfd, 5); /*process listens to socket for connections*/
+		clien = sizeof(cli_addr);
+		newsockfd = accept(sockfd, (struct sockaddr *)
+			&cli_addr, &clien);
 
-	clien = sizeof(cli_addr);
+		if (newsockfd < 0)
+		{
+			error("ERROR on accept");
+		}
+		
+		struct ThreadArgs * threadArgs;
+		threadArgs = new struct ThreadArgs;
+		threadArgs->clientSock = newsockfd;
+		count++;
+		
+		int status = pthread_create(&id[count], NULL, threadMain, (void*)threadArgs);
 
-	newsockfd = accept(sockfd, (struct sockaddr *)
-	&cli_addr, &clien);
-
-	if(newsockfd < 0)
-	{
-		error("ERROR on accept");
-	}
-	
-
-	struct ThreadArgs * threadArgs;
-      	threadArgs = new struct ThreadArgs;
-
-	threadArgs->clientSock = newsockfd;
-
-
-	count++;
-	
-	
-	int status = pthread_create(&id[count], NULL, threadMain, (void*) threadArgs);
-	
-
-
-
-
-
-}
+		}
 	return 0;
-
 }
 
 void *threadMain(void * args)
 {
 
 	struct ThreadArgs * threadArgs = (struct ThreadArgs *) args;
-
 	int clientSock = threadArgs->clientSock;
-
-
-
-	processClient(clientSock);
-	delete threadArgs;
-	pthread_detach(pthread_self());
-	close(clientSock);
-
-	return NULL;
-	
-
-}
-
-
-void processClient(int clientSock)
-{
-	string name ="";
+	string name = "";
 	int count = 1;
 	int n;
 	char buffer[256];
-	bzero(buffer,256);
+	bzero(buffer, 256);
 	bool open = true;
 	string output;
 	string guess;
 	int guessResult = 0;
 	int randomResult = 0;
-	int difResult = 0;
-	string rando ="";
-	
+	string rando = "";
+	int guessArr[4];
+	int randomArr[4];
+
 	for (int i = 0; i < 4; i++)
 	{
-		n = rand() %10;
-		randomResult += n;
+		n = rand() % 10;
+		randomArr[i] = n;
 		rando += to_string(n);
 	}
-	
+
+	cout << "Random Number: " << rando << " Client Socket: " << clientSock << endl;
 
 	n = read(clientSock, buffer, 255);
-	
-	if(n < 0)
+	if (n < 0)
 	{
 		error("ERROR reading from socket");
 	}
-
-
-	
-
 	name = buffer;
-	while(open){
-	
+	while (open) {
+		guessResult = 0;
 
-	guessResult = 0;
-
-	if(count == 1){
-	output = "Random Number: " + rando + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
-	strcpy(buffer, output.c_str());
-	if(n != 0){
-	n = write(clientSock, buffer, strlen(buffer));
-	}else{
-	open = false;
-	}
-		if(n < 0)
-		{
-			error("ERROR writing to scoket");
+		if (count == 1) {
+			output = "\nTurn: " + to_string(count) + "\nEnter a guess: ";
+			strcpy(buffer, output.c_str());
+			if (n != 0) {
+				n = write(clientSock, buffer, strlen(buffer));
+			}
+			else {
+				open = false;
+			}
+			if (n < 0)
+			{
+				error("ERROR writing to scoket");
+			}
 		}
-	}
+
+		bzero(buffer, 256);
+		n = read(clientSock, buffer, 255);
+		if (n < 0)
+		{
+			error("ERROR reading from socket");
+		}
+
+		string guess = buffer;
+	
+		for (int i = 0; i < 4; i++)
+		{
+			char x = guess[i];
+			guessArr[i] = x - '0';
+			if(guessArr[i] > randomArr[i]){
+				guessResult += (guessArr[i] - randomArr[i]);
+			}else{
+				guessResult +=(randomArr[i] - guessArr[i]);
+			}
+			
+		}
+		
+		bzero(buffer, 256);
 
 	
-	bzero(buffer, 256);
+		if(guessResult == 0){			
+			pthread_mutex_lock(&mutex);
+			if (highScoreArr[0] > count || highScoreArr[0] == 0)
+			{
+				highScoreArr[2] = highScoreArr[1];
+				nameArr[2] = nameArr[1];
+				highScoreArr[1] = highScoreArr[0];
+				nameArr[1] = nameArr[0];
+				highScoreArr[0] = count;
+				nameArr[0] = name;
 
-	n = read(clientSock, buffer, 255);
-
-	if(n < 0)
-	{
-		error("ERROR reading from socket");
-	}
-
-	string guess = buffer;
-	int guessArr[4];
-	for(int i = 0; i < 4; i++)
-	{
-		char x = guess[i];
-		guessArr[i] = x - '0';
-       		guessResult += guessArr[i];		
-	}
-
-	cout << guessResult << endl;
-	cout << randomResult<< endl;
-
-
-	bzero(buffer, 256);
-
-	if(guessResult > randomResult){
-		difResult = guessResult - randomResult;
-	}
-	else if(guessResult < randomResult){
-		difResult = randomResult - guessResult;
-	}else{
+			}
+			else if (highScoreArr[1] > count || highScoreArr[1] == 0)
+			{
+				highScoreArr[2] = highScoreArr[1];
+				nameArr[2] = nameArr[1];
+				highScoreArr[1] = count;
+				nameArr[1] = name;
+			}
+			else if (highScoreArr[2] > count || highScoreArr[2] == 0)
+			{
+				highScoreArr[2] = count;
+				nameArr[2] = name;
+			}
 
 
-	
-	pthread_mutex_lock(&mutex);
-	if(highScoreArr[0] > count || highScoreArr[0] == 0)
-	{
-		highScoreArr[2] = highScoreArr[1];
-		nameArr[2] = nameArr[1];
-		highScoreArr[1] = highScoreArr[0];
-		nameArr[1] = nameArr[0];
-		highScoreArr[0] = count;
-		nameArr[0] = name;
-		 
-	}else if(highScoreArr[1] > count || highScoreArr[1] == 0)
-	{
-		highScoreArr[2] = highScoreArr[1];
-		nameArr[2] = nameArr[1];
-		highScoreArr[1] = count;
-		nameArr[1] = name;
-	}else if(highScoreArr[2] > count || highScoreArr[2] == 0)
-	{
-		highScoreArr[2] = count;
-		nameArr[2] = name;
-	}
-	
+			if (highScoreArr[2] != 0) {
+				output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
+					"\n\n Leader board:\n 1. " + nameArr[0] + " " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
+					" " + to_string(highScoreArr[1]) + "\n 3. " + nameArr[2] + " " + to_string(highScoreArr[2]);
+			}
+			else if (highScoreArr[2] == 0 && highScoreArr[1] != 0) {
+				output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
+					"\n\n Leader board:\n 1. " + nameArr[0] + " " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
+					" " + to_string(highScoreArr[1]);
+			}
+			else {
+				output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
+					"\n\n Leader board:\n 1. " + nameArr[0] + " " + to_string(highScoreArr[0]);
+			}
 
-	if(highScoreArr[2] != 0){
-	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
-		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
-		" " + to_string(highScoreArr[1]) + "\n 3. " + nameArr[2] + " " + to_string(highScoreArr[2]);
-	}else if(highScoreArr[2] == 0 && highScoreArr[1] != 0){
-	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
-		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
-		" " + to_string(highScoreArr[1]); 
-	}else{
-	output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
-		"\n\nLeader board:\n 1. " + nameArr[0] +" " + to_string(highScoreArr[0]) ;
-	}
+			pthread_mutex_unlock(&mutex);
 
-	pthread_mutex_unlock(&mutex);
+			output.copy(buffer, 255);
+			if (n != 0) {
+				n = write(clientSock, buffer, strlen(buffer));
+			}
+			if (n < 0)
+			{
+				error("ERROR writing to socket");
+			}
+						
+			open = false;
+		}
 
-	output.copy(buffer,255 );
-	if(n!=0){
-	n= write(clientSock, buffer, strlen(buffer));
-	}
-	if(n < 0)
-	{
-		error("ERROR writing to socket");
-	}
+		if (open)
+		{
+			count++;
 
+			output = "Result of guess: " + to_string(guessResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
+			strcpy(buffer, output.c_str());
+			if (n != 0) {
+				n = write(clientSock, buffer, strlen(buffer));
+			}
+			else {
+				open = false;
+			}
 
-
-	open = false;
-
-
+			if (n < 0)
+			{
+				error("ERROR writing to socket");
+			}
+			
+		}	
 	}
 	
-	if(open)
-	{
+	delete threadArgs;
+	pthread_detach(pthread_self());
+	close(clientSock);
 
-	output = "Result of guess: " + to_string(difResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: "; 
-	strcpy(buffer, output.c_str());
-	if(n!=0){
-	n = write(clientSock, buffer, strlen(buffer));
-	}else{
-	open = false;
-	}
-
-	if(n<0)
-	{
-		error("ERROR writing to socket");
-	}
-
-	count++;
-	}	
-
-	
-	
-	}
-
+	return NULL;
 }
-
 
 
 
