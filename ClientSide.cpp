@@ -1,3 +1,7 @@
+//Damien Sudol
+//HW5
+//Version 1.0
+
 #include <string.h>
 #include <iostream>
 #include <fstream>
@@ -11,6 +15,7 @@
 
 using namespace std;
 
+//message for error handling and exiting program
 void error(string msg)
 {
 	cout << msg << endl;
@@ -19,18 +24,23 @@ void error(string msg)
 
 int main(int argc, char *argv[])
 {
+	//main scope variables
 	int sockfd, portno, n;
 	struct sockaddr_in serv_addr;
 	struct hostent * server;
 	char buffer[256];
+	bool con = true;
+	int count = 1;
 
+	// ensure the proper number of arguments has been passed
 	if (argc < 3)
 	{
 		fprintf(stderr, "usage %s hostname port",
 			argv[0]);
 		exit(0);
 	}
-
+	
+	// assign port number. open socket
 	portno = atoi(argv[2]);
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
 
@@ -39,6 +49,7 @@ int main(int argc, char *argv[])
 		error("ERROR opening socket");
 	}
 
+	//find host by ip argument
 	server = gethostbyname(argv[1]);
 
 	if (server == NULL)
@@ -48,6 +59,7 @@ int main(int argc, char *argv[])
 	}
 	struct hostent *gethostbyname(char *name);
 
+	//establish connection
 	bzero((char *)&serv_addr, sizeof(serv_addr));
 	serv_addr.sin_family = AF_INET;
 	bcopy((char *)server->h_addr,
@@ -60,14 +72,14 @@ int main(int argc, char *argv[])
 		error("ERROR connecting");
 	}
 
+	//prompt user for name
 	cout << "Welcome to Number Guessing Game" << endl;
 	printf("Enter your name: ");
 	bzero(buffer, 256);
 
-	bool con = true;
-	int count = 1;
+	//loop for server->client game back n forth
 	while (con == true) {
-
+		//variable for loop/reset
 		string getLine;
 		getline(cin, getLine);
 		bool invalidNameSize = true;
@@ -75,8 +87,10 @@ int main(int argc, char *argv[])
 		bool check = true;
 		bool innerCheck = true;
 		int success[4]{ 0,0,0,0 };
+		//if statement for first send to server
 		if (count == 1)
 		{
+			//check input for acceptable name length
 			while (invalidNameSize == true) {
 				if (getLine.length() > 100)
 				{
@@ -88,9 +102,20 @@ int main(int argc, char *argv[])
 				}
 
 			}
+	
+		//write to server if first write (use char buffer)	
+		getLine.copy(buffer, 100);
+		n = write(sockfd, buffer, strlen(buffer));
+		if (n < 0)
+		{
+			error("ERROR writing to socket");
 		}
+
+		}
+		//if statement to conduct the rest of the game
 		if (count > 1)
 		{
+			//check user submits proper data. 4 digits no whitespace.
 			while (check == true) {
 				while (innerCheck == true) {
 					if (getLine.length() > 4 || getLine.length() < 4)
@@ -130,25 +155,32 @@ int main(int argc, char *argv[])
 				}
 
 			}
+			//acceptable data is cast to long int and sent to server
+			long hostInt = stol(getLine);
+			long networkInt = htonl(hostInt);
+			int bytesSent = send(sockfd, (void *) &networkInt,
+					sizeof(long), 0);
+			if (bytesSent != sizeof(long))
+			{
+				error("ERROR writing to socket");
+			}
+	
 		}
 
-		getLine.copy(buffer, 100);
-		n = write(sockfd, buffer, strlen(buffer));
-		if (n < 0)
-		{
-			error("ERROR writing to socket");
-		}
-
+		//clear buffer, read and print from buffer
 		bzero(buffer, 256);
 		n = read(sockfd, buffer, 255);
 		if (n < 0)
 		{
 			error("ERROR reading from socket");
 		}
-
 		cout << buffer << endl;
+		//statement checks for game comopletion. if game is completed exit loop and end program
+		if(buffer[17] == '0')
+			con = false;
 		bzero(buffer, 256);
 		count++;
+	
 	}
 	return 0;
 }

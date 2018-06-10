@@ -1,3 +1,7 @@
+//Damien Sudol
+//Assignment 5
+//Version 1.0
+
 #include <strings.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,22 +18,27 @@
 
 using namespace std;
 
+//Create mutex for shared variables amongst threads
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 
+//function prototype for thread
 void * threadMain(void *vs);
 
+//error handling method
 void error(string msg)
 {
 	cout << msg << endl;
 	exit(EXIT_FAILURE);
 };
 
+//struct to pass onto thread
 struct ThreadArgs
 {
 	int clientSock;
 
 };
 
+//declare shared global variables
 int highScoreArr[3]{ 0,0,0 };
 string nameArr[3]{ "","","" };
 
@@ -43,7 +52,9 @@ int main(int argc, char *argv[])
 		char sin_zero[8];/*Not used, must be zero */
 	};
 	
-	pthread_t id[200];
+	//create a capacity of 900 threads
+	//declare variables used in main 
+	pthread_t id[900];
 	int count = 0;
 	int sockfd, newsockfd, portno;
 	unsigned int clien;
@@ -63,6 +74,7 @@ int main(int argc, char *argv[])
 		error("ERROR opening socket");
 	}
 
+	//create viable connection
 	int socket(int family, int type, int protocol);
 	bzero((char *)&serv_addr, sizeof(serv_addr)); /*sets values in buffer to 0*/
 	portno = stoi(argv[1]); /*port # server will listen for*/
@@ -78,6 +90,7 @@ int main(int argc, char *argv[])
 		error("ERROR on binding");
 	}
 	
+	//listen for connections on port number sockfd
 	while (true)
 	{
 
@@ -102,9 +115,11 @@ int main(int argc, char *argv[])
 	return 0;
 }
 
+//thread to treat each client independently 
 void *threadMain(void * args)
 {
 
+	//delcare all utilized variables for thread
 	struct ThreadArgs * threadArgs = (struct ThreadArgs *) args;
 	int clientSock = threadArgs->clientSock;
 	string name = "";
@@ -121,6 +136,7 @@ void *threadMain(void * args)
 	int guessArr[4];
 	int randomArr[4];
 
+	//create random 4 digit number
 	for (int i = 0; i < 4; i++)
 	{
 		n = rand() % 10;
@@ -128,17 +144,23 @@ void *threadMain(void * args)
 		rando += to_string(n);
 	}
 
+	//print random number for error testing
 	cout << "Random Number: " << rando << " Client Socket: " << clientSock << endl;
 
+	//read client name
 	n = read(clientSock, buffer, 255);
 	if (n < 0)
 	{
 		error("ERROR reading from socket");
 	}
 	name = buffer;
+	
+	//while loop to fascilitate game back and forth, server -> client
 	while (open) {
 		guessResult = 0;
 
+		//handles user input for name vs integer for guess @count == 0 (first input)
+		//writes first prompt to user from serverside to guess number
 		if (count == 1) {
 			output = "\nTurn: " + to_string(count) + "\nEnter a guess: ";
 			strcpy(buffer, output.c_str());
@@ -153,16 +175,42 @@ void *threadMain(void * args)
 				error("ERROR writing to scoket");
 			}
 		}
-
+		
+		//clear buffer, handle user input as incoming long integer value
+		//assign value to hostInt
 		bzero(buffer, 256);
-		n = read(clientSock, buffer, 255);
-		if (n < 0)
-		{
-			error("ERROR reading from socket");
+		int bytesLeft = sizeof(long);
+		long networkInt;
+		char *bp = (char *) &networkInt;
+
+		while(bytesLeft){
+			int bytesRecv = recv(clientSock, bp, bytesLeft, 0);
+			if (bytesRecv <=0 )
+			{
+				cout << "Socket " << clientSock << " closed. Error on Bytes Received." << endl;
+				 	
+				open = false;
+				n = 0;
+				break;
+			}
+			bytesLeft = bytesLeft - bytesRecv;
+			bp = bp + bytesRecv;
 		}
 
-		string guess = buffer;
-	
+		long hostInt = ntohl(networkInt);
+
+		//cast user input to string and assign to guess
+		string guess = to_string(hostInt);
+		
+		//test if precision has been lost due to leading 0s. Change as necessary for completeness
+		if(guess.length() == 3)
+			guess = "0" + guess;
+		else if(guess.length() == 2)
+			guess = "00" + guess;
+		else if(guess.length() == 1)
+			guess = "000" + guess;
+
+		//find digit to digit difference for random number and user guess
 		for (int i = 0; i < 4; i++)
 		{
 			char x = guess[i];
@@ -175,10 +223,12 @@ void *threadMain(void * args)
 			
 		}
 		
+		//clear buffer
 		bzero(buffer, 256);
 
-	
-		if(guessResult == 0){			
+		//check if user guesses correctly. if yes, enter if statement
+		if(guessResult == 0){		
+			//update global variables for leaderboard. Use mutex to prevent race conditions	
 			pthread_mutex_lock(&mutex);
 			if (highScoreArr[0] > count || highScoreArr[0] == 0)
 			{
@@ -202,8 +252,8 @@ void *threadMain(void * args)
 				highScoreArr[2] = count;
 				nameArr[2] = name;
 			}
-
-
+			
+			//format data to be sent to client, including leaderboard
 			if (highScoreArr[2] != 0) {
 				output = "Result of guess: 0\n\nCongratulations! It took " + to_string(count) + "  tries to guess the number!" +
 					"\n\n Leader board:\n 1. " + nameArr[0] + " " + to_string(highScoreArr[0]) + "\n 2. " + nameArr[1] +
@@ -221,6 +271,7 @@ void *threadMain(void * args)
 
 			pthread_mutex_unlock(&mutex);
 
+			//write data to client/ ensure connection is active
 			output.copy(buffer, 255);
 			if (n != 0) {
 				n = write(clientSock, buffer, strlen(buffer));
@@ -230,14 +281,18 @@ void *threadMain(void * args)
 				error("ERROR writing to socket");
 			}
 						
+			//end loop after correct guess
 			open = false;
 		}
 
+		//if connection still exists and guess is incorrect
 		if (open)
 		{
+			//add to turn index and display message to user without leaderboard or congrat message. check for connection before
+			//write to user
 			count++;
 
-			output = "Result of guess: " + to_string(guessResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
+			output = "\nResult of guess: " + to_string(guessResult) + "\nTurn: " + to_string(count) + "\nEnter a guess: ";
 			strcpy(buffer, output.c_str());
 			if (n != 0) {
 				n = write(clientSock, buffer, strlen(buffer));
@@ -254,6 +309,7 @@ void *threadMain(void * args)
 		}	
 	}
 	
+	//game has concluded. Reallocate dynamic memory, detach thread, close socket, return null
 	delete threadArgs;
 	pthread_detach(pthread_self());
 	close(clientSock);
