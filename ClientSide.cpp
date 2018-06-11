@@ -118,9 +118,9 @@ int main(int argc, char *argv[])
 			//check user submits proper data. 4 digits no whitespace.
 			while (check == true) {
 				while (innerCheck == true) {
-					if (getLine.length() > 4 || getLine.length() < 4)
+					if (getLine.length() > 4)
 					{
-						cout << "ENTER 4 DIGITS WITHOUT SPACES" << endl;
+						cout << "ENTER a number between 0000 - 9999" << endl;
 						getline(cin, getLine);
 					}
 
@@ -128,7 +128,7 @@ int main(int argc, char *argv[])
 						innerCheck = false;
 					}
 				}
-				for (int i = 0; i < 4; i++)
+				for (int i = 0; i < getLine.length(); i++)
 				{
 					int a = getLine[i] - '0';
 					for (int j = 0; j < 10; j++) {
@@ -136,7 +136,7 @@ int main(int argc, char *argv[])
 							success[i] = 1;
 					}
 				}
-				for (int i = 0; i < 4; i++)
+				for (int i = 0; i < getLine.length(); i++)
 				{
 					if (success[i] == 0)
 					{
@@ -145,7 +145,7 @@ int main(int argc, char *argv[])
 				}
 				if (fail == true)
 				{
-					cout << "ENTER 4 DIGITS WITHOUT SPACES" << endl;
+					cout << "ENTER a number between 0000 - 9999" << endl;
 					getline(cin, getLine);
 					innerCheck = false;
 					fail = false;

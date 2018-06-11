@@ -18,8 +18,9 @@ accepted but counted towards length.
 Next, a random hidden number will be established for gameplay. User will be prompted to enter their
 guess. Player can expect the random number to be between 0000-9999 and should enter a guess 
 accordindgly, not less than, or more than the range. Only integer values will be accepted
-or user will be re-prompted. Player must enter in 4 digits, for example 12 -> 0012 or 
-1 -> 0001. This will help the player establish more informed guesses.
+or user will be re-prompted. It is recommended for player to enter 4 digits, for example 12 -> 0012 or 
+1 -> 0001, adding leading zeros. Leading zeros will be added if player does not include them.
+This will help the player establish more informed guesses.
 
 Server will assess the player's submitted guess and return a "Result of guess".
 The reuslt of guess will be the difference of the submitted integer, at its respective index,
