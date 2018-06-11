@@ -29,7 +29,7 @@ int main(int argc, char *argv[])
 	int sockfd, portno, n;
 	struct sockaddr_in serv_addr;
 	struct hostent * server;
-	char buffer[256];
+	char buffer[512];
 	bool con = true;
 	int count = 1;
 
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
 	//prompt user for name
 	cout << "Welcome to Number Guessing Game" << endl;
 	printf("Enter your name: ");
-	bzero(buffer, 256);
+	bzero(buffer, 512);
 
 	//loop for server->client game back n forth
 	while (con == true) {
@@ -169,8 +169,8 @@ int main(int argc, char *argv[])
 		}
 
 		//clear buffer, read and print from buffer
-		bzero(buffer, 256);
-				n = read(sockfd, buffer, 255);
+		bzero(buffer, 512);
+				n = read(sockfd, buffer, 512);
 		if (n < 0)
 		{
 			error("ERROR reading from socket");
@@ -180,19 +180,15 @@ int main(int argc, char *argv[])
 		}
 		//statement checks for game comopletion. if game is completed exit loop and end program
 		if(buffer[17] == '0'){
-			cout << buffer;
+			cout << buffer << endl;
 			con = false;
-			bzero(buffer, 256);
-				n = read(sockfd, buffer, 255);
-		if (n < 0)
-		{
-			error("ERROR reading from socket");
-		}
-		cout << buffer << endl;
+			bzero(buffer, 512);
+				n = read(sockfd, buffer, 512);
+	
 
 		}
 
-		bzero(buffer, 256);
+		bzero(buffer, 512);
 
 
 
